@@ -98,6 +98,25 @@
     gap: 0; /* Ensure no gap between login button and menu toggle */
 }
 
+.disabledContent {
+    filter: blur(5px);
+    pointer-events: none;
+    user-select: none;
+    cursor: not-allowed;
+}
+
+.loginButton {
+    border-radius: 0.3125em;
+    font-size: 1rem;
+    font-weight: 100;
+    margin: 0;
+    padding: 0.5rem 1rem;
+}
+
+.loginButton:hover {
+    background-color: #dddddd;
+}
+
 @media (min-width: 992px) {
     .headerTitle {
         font-weight: 600;
