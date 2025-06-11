@@ -6,7 +6,7 @@ import { useLogin, getToken, isUsingAppServicesLogin } from "../authConfig";
 import { apitoken, getUserIdFromToken } from "../p4ai/auth";
 import { getProtectionScope } from "../p4ai/protectionScope";
 import { processContent } from "../p4ai/processContent";
-import { processContentAsync } from "../p4ai/ProcessContentAsync";
+import { processContentAsync } from "../p4ai/processContentAsync";
 
 export async function getHeaders(idToken: string | undefined): Promise<Record<string, string>> {
     // If using login and not using app services, add the id token of the logged in account as the authorization
