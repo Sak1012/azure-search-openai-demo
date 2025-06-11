@@ -1,4 +1,4 @@
-# set the parent of the script as the current location.
+# Set the parent of the script as the current location
 Set-Location $PSScriptRoot
 
 Write-Host ""
@@ -18,12 +18,10 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-
 Write-Host 'Creating python virtual environment ".venv"'
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCmd) {
-  # fallback to python3 if python not found
-  $pythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
+    $pythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
 }
 Start-Process -FilePath ($pythonCmd).Source -ArgumentList "-m venv .venv" -Wait -NoNewWindow
 
@@ -34,8 +32,8 @@ Write-Host ""
 $directory = Get-Location
 $venvPythonPath = "$directory/.venv/scripts/python.exe"
 if (Test-Path -Path "/usr") {
-  # fallback to Linux venv path
-  $venvPythonPath = "$directory/.venv/bin/python"
+    # fallback to Linux venv path
+    $venvPythonPath = "$directory/.venv/bin/python"
 }
 
 Start-Process -FilePath $venvPythonPath -ArgumentList "-m pip install -r backend/requirements.txt" -Wait -NoNewWindow
@@ -55,18 +53,19 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Building frontend"
+Write-Host "Starting frontend dev server (with hot reload via Vite)"
 Write-Host ""
-npm run build
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Failed to build frontend"
-    exit $LASTEXITCODE
-}
+
+# Start frontend dev server with Vite
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "npm run dev" -WorkingDirectory "$directory/frontend"
+
+# Optional: Wait for frontend to start up
+Start-Sleep -Seconds 5
 
 Write-Host ""
-Write-Host "Starting backend"
+Write-Host "Starting backend with Quart (with hot reload)"
 Write-Host ""
-Set-Location ../backend
+Set-Location "$directory/backend"
 
 $port = 50505
 $hostname = "localhost"
