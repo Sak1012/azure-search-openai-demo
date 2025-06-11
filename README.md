@@ -79,7 +79,33 @@ The repo includes sample data so it's ready to try end to end. In this sample ap
   - Your Azure account must have `Microsoft.Authorization/roleAssignments/write` permissions, such as [Role Based Access Control Administrator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#role-based-access-control-administrator-preview), [User Access Administrator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#user-access-administrator), or [Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#owner). If you don't have subscription-level permissions, you must be granted [RBAC](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#role-based-access-control-administrator-preview) for an existing resource group and [deploy to that existing group](docs/deploy_existing.md#resource-group).
   - Your Azure account also needs `Microsoft.Resources/deployments/write` permissions on the subscription level.
 
-### Cost estimation
+## Entra ID App Registration and Code Configuration
+
+### Steps
+
+1. **Create App Registrations**  
+   Create a app registrations using the Azure portal:
+   - `azure-search-openai-demo-frontend`
+
+2. **Record Client ID**  
+   Note down the **Application (Client ID)** for the application from the **Overview** section in **App Registrations**.
+
+3. **Add the Permissions  (`Content.Process.User` and `ProtectionScopes.Compute.User`) in the App Registration**  
+   Add a new scope to the **azure-search-openai-demo-frontend** app registration with the following steps:
+   - In the registered app go to `Manage > API permissions`.
+   - Select `Add a Permission`
+   - Choose `Microsoft graph` and select `Delgated Permissions`.
+   - Search for `Content.Process.User` and Select the permission.
+   - Search for `ProtectionScopes.Compute.User` and Select the permission.
+   - Add the permisison and make sure it is granted by the admin. 
+
+8. **Configure Redirect URIs for Frontend App**  
+   - Add the following redirect URIs to the `azure-search-openai-demo-frontend` app registration in `Manage > Authentication`
+     - `http://localhost:50505/`
+     - `http://localhost:5173/` (Make sure this matches the port of your local setup)
+     - URL of the deployed web app (retrieved from the Azure portal or printed as "Endpoint" after `azd` completes).
+
+## Cost estimation
 
 Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage.
 However, you can try the [Azure pricing calculator](https://azure.com/e/e3490de2372a4f9b909b0d032560e41b) for the resources below.
@@ -128,6 +154,40 @@ A related option is VS Code Dev Containers, which will open the project in your 
 
 ### Local environment
 
+#### Option 1 (P4AI):
+1. Install the required tools:
+
+    - [Azure Developer CLI](https://aka.ms/azure-dev/install)
+    - [Python 3.9, 3.10, or 3.11](https://www.python.org/downloads/)
+      - **Important**: Python and the pip package manager must be in the path in Windows for the setup scripts to work.
+      - **Important**: Ensure you can run `python --version` from console. On Ubuntu, you might need to run `sudo apt install python-is-python3` to link `python` to `python3`.
+    - [Node.js 20+](https://nodejs.org/download/)
+    - [Git](https://git-scm.com/downloads)
+    - [Powershell 7+ (pwsh)](https://github.com/powershell/powershell) - For Windows users only.
+      - **Important**: Ensure you can run `pwsh.exe` from a PowerShell terminal. If this fails, you likely need to upgrade PowerShell.
+
+2. Clone this repo:
+  
+```bash  
+git clone https://github.com/Sak1012/azure-search-openai-demo.git
+```
+3. Open the config file for P4AI:
+
+```bash
+code .\azure-search-openai-demo\app\frontend\src\p4ai\config.ts
+```
+4. Replace the `CLIENT_ID` and `TENANT_ID` with the id from App registration and your tenant.
+```ts
+export const config = {
+    CLIENT_ID: "YOUR_CLIENT_ID",
+    TENANT_ID: "YOUR_TENANT_ID",
+    CLOUD_INSTANCE: "https://login.microsoftonline.com/common"
+};
+
+```
+5. Continue with [Deployment](#deploying) and [Development Server](#running-the-development-server).
+
+#### Option 2:
 1. Install the required tools:
 
     - [Azure Developer CLI](https://aka.ms/azure-dev/install)
@@ -140,7 +200,7 @@ A related option is VS Code Dev Containers, which will open the project in your 
       - **Important**: Ensure you can run `pwsh.exe` from a PowerShell terminal. If this fails, you likely need to upgrade PowerShell.
 
 2. Create a new folder and switch to it in the terminal.
-3. Run this command to download the project code:
+3. Run this command to download the project code (**This is Not applicable for P4AI**):
 
     ```shell
     azd init -t azure-search-openai-demo
@@ -202,7 +262,7 @@ azd up
 You can only run a development server locally **after** having successfully run the `azd up` command. If you haven't yet, follow the [deploying](#deploying) steps above.
 
 1. Run `azd auth login` if you have not logged in recently.
-2. Start the server:
+2. Start the server(This will start a dev server with hot reloading capabilities for both frontend and backend):
 
   Windows:
 
@@ -223,8 +283,8 @@ See more tips in [the local development guide](docs/localdev.md).
 
 ## Using the app
 
-- In Azure: navigate to the Azure WebApp deployed by azd. The URL is printed out when azd completes (as "Endpoint"), or you can find it in the Azure portal.
-- Running locally: navigate to 127.0.0.1:50505
+- In Azure: navigate to the Azure WebApp deployed by azd. The URL is printed out when azd completes (as "Endpoint"), or you can find it in the Azure portal (Remember to add it in redirect uri ! [See Here](#entra-id-app-registration-and-code-configuration)).
+- Running locally: navigate to 127.0.0.1:5173
 
 Once in the web app:
 
