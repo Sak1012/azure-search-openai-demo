@@ -30,16 +30,25 @@ services:
       prebuild:
         windows:
           shell: pwsh
-          run:  cd ../frontend;npm install;npm run build
+          run: |
+            cd ../frontend
+            $env:VITE_CLIENT_ID = "$env:VITE_CLIENT_ID"
+            npm install
+            npm run build
           interactive: false
           continueOnError: false
         posix:
           shell: sh
-          run:  cd ../frontend;npm install;npm run build
+          run: |
+            cd ../frontend
+            export VITE_CLIENT_ID=$VITE_CLIENT_ID
+            npm install
+            npm run build
           interactive: false
           continueOnError: false
 pipeline:
   variables:
+      - VITE_CLIENT_ID
       - AZURE_OPENAI_SERVICE
       - AZURE_OPENAI_API_VERSION
       - AZURE_OPENAI_RESOURCE_GROUP

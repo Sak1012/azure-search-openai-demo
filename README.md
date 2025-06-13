@@ -97,13 +97,19 @@ The repo includes sample data so it's ready to try end to end. In this sample ap
    - Choose `Microsoft graph` and select `Delgated Permissions`.
    - Search for `Content.Process.User` and Select the permission.
    - Search for `ProtectionScopes.Compute.User` and Select the permission.
-   - Add the permisison and make sure it is granted by the admin. 
+   - Ensure that Grant admin consent is invoked by an administrator.
 
-8. **Configure Redirect URIs for Frontend App**  
+4. **Configure Redirect URIs for Frontend App**  
    - Add the following redirect URIs to the `azure-search-openai-demo-frontend` app registration in `Manage > Authentication`
      - `http://localhost:50505/`
      - `http://localhost:5173/` (Make sure this matches the port of your local setup)
      - URL of the deployed web app (retrieved from the Azure portal or printed as "Endpoint" after `azd` completes).
+
+5. **Make the App support Multi-teant ID's**
+    - Go to `Manage > Authentication` 
+    - Under Supported account types select `Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)`
+
+6. Now [get started](#getting-started) with the setup for deployment.
 
 ## Cost estimation
 
@@ -171,21 +177,7 @@ A related option is VS Code Dev Containers, which will open the project in your 
 ```bash  
 git clone https://github.com/Sak1012/azure-search-openai-demo.git
 ```
-3. Open the config file for P4AI:
-
-```bash
-code .\azure-search-openai-demo\app\frontend\src\p4ai\config.ts
-```
-4. Replace the `CLIENT_ID` and `TENANT_ID` with the id from App registration and your tenant.
-```ts
-export const config = {
-    CLIENT_ID: "YOUR_CLIENT_ID",
-    TENANT_ID: "YOUR_TENANT_ID",
-    CLOUD_INSTANCE: "https://login.microsoftonline.com/common"
-};
-
-```
-5. Continue with [Deployment](#deploying) and [Development Server](#running-the-development-server).
+3. Continue with [Deployment](#deploying) and [Development Server](#running-the-development-server).
 
 #### Option 2:
 1. Install the required tools:
@@ -224,7 +216,7 @@ The steps below will provision Azure resources and deploy the application code t
     azd auth login --use-device-code
     ```
 
-1. Create a new azd environment:
+2. Create a new azd environment:
 
     ```shell
     azd env new
@@ -232,11 +224,15 @@ The steps below will provision Azure resources and deploy the application code t
 
     Enter a name that will be used for the resource group.
     This will create a new folder in the `.azure` folder, and set it as the active environment for any calls to `azd` going forward.
-1. (Optional) This is the point where you can customize the deployment by setting environment variables, in order to [use existing resources](docs/deploy_existing.md), [enable optional features (such as auth or vision)](docs/deploy_features.md), or [deploy low-cost options](docs/deploy_lowcost.md), or [deploy with the Azure free trial](docs/deploy_freetrial.md).
-1. Run `azd up` - This will provision Azure resources and deploy this sample to those resources, including building the search index based on the files found in the `./data` folder.
+3. (Optional) This is the point where you can customize the deployment by setting environment variables, in order to [use existing resources](docs/deploy_existing.md), [enable optional features (such as auth or vision)](docs/deploy_features.md), or [deploy low-cost options](docs/deploy_lowcost.md), or [deploy with the Azure free trial](docs/deploy_freetrial.md).
+4. Run `azd up` - This will provision Azure resources and deploy this sample to those resources, including building the search index based on the files found in the `./data` folder.
     - **Important**: Beware that the resources created by this command will incur immediate costs, primarily from the AI Search resource. These resources may accrue costs even if you interrupt the command before it is fully executed. You can run `azd down` or delete the resources manually to avoid unnecessary spending.
+
+    - Then you'll be prompted to enter the CLIENT ID of the fronted app you had [registered](#entra-id-app-registration-and-code-configuration).
+    
+    !['Prompt to Enter Client ID'](docs/images/enterclientid.png)
     - You will be prompted to select two locations, one for the majority of resources and one for the OpenAI resource, which is currently a short list. That location list is based on the [OpenAI model availability table](https://learn.microsoft.com/azure/cognitive-services/openai/concepts/models#model-summary-table-and-region-availability) and may become outdated as availability changes.
-1. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
+5. After the application has been successfully deployed you will see a URL printed to the console.  Click that URL to interact with the application in your browser.
 It will look like the following:
 
 !['Output from running azd up'](docs/images/endpoint.png)
@@ -262,7 +258,13 @@ azd up
 You can only run a development server locally **after** having successfully run the `azd up` command. If you haven't yet, follow the [deploying](#deploying) steps above.
 
 1. Run `azd auth login` if you have not logged in recently.
-2. Start the server(This will start a dev server with hot reloading capabilities for both frontend and backend):
+2. Create a `.env` in `app > frontend` file and add your client id there
+```env
+VITE_CLIENT_ID = YOUR_CLIENT_ID
+```
+>NOTE: If you're re-deploying make sure to delete this `.env` file as it may override the Client ID that you would've entered during initial deployment.
+
+3. Start the server(This will start a dev server with hot reloading capabilities for both frontend and backend):
 
   Windows:
 
@@ -292,6 +294,38 @@ Once in the web app:
 - Explore citations and sources
 - Click on "settings" to try different options, tweak prompts, etc.
 
+### How the Sample Works from a Purview API Integration Perspective
+
+There are three primary steps your app must take to process prompts and responses using **Microsoft Purview**:
+
+1. Compute protection scopes
+2. Process content
+
+---
+
+#### 1. Compute Protection Scopes
+
+The first step is to compute the **protection scope state** for the user by calling the _Compute protection scopes_ API. This should be done shortly after the user authenticates.
+
+- **Docs:** [Compute protection scopes](https://learn.microsoft.com/en-us/purview/developer/use-the-api#compute-protection-scopes)
+- **Code:** `app/frontend/src/p4ai/protectionScope.ts`.
+- **Usage:** The API response is processed in `app/frontend/src/api/api.ts`, where the policy details are cached for further use.
+
+---
+
+#### 2. Process Content
+
+Finally, the app calls the _Process content_ API using the cached protection scope state.
+
+- For each user activity, the app checks the user's protection scope and calls the API accordingly.
+- Include the cached `ETag` from the protection scopes call in the `If-None-Match` header.
+- The API response provides a decision (`allow`, `restrict`, etc.) for handling the interaction.
+
+- **Docs:** [Process content](https://learn.microsoft.com/en-us/purview/developer/use-the-api#process-content)
+- **Code:** `app/frontend/src/p4ai/processContent.ts`.
+- **Usage:** The API response is processed in `app/frontend/src/api/api.ts`, where the policy details are cached for further use.
+
+---
 ## Clean up
 
 To clean up all the resources created by this sample:
