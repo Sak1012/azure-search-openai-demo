@@ -234,12 +234,12 @@ export const getUsername = async (client: IPublicClientApplication): Promise<str
 };
 
 const CLIENT_ID = config.CLIENT_ID;
-const CLOUD_INSTANCE = config.CLOUD_INSTANCE;
+const AUTHORITY = config.AUTHORITY;
 
 const msalConfigp4Ai = {
     auth: {
         clientId: CLIENT_ID,
-        authority: `${CLOUD_INSTANCE}`,
+        authority: `${AUTHORITY}`,
         redirectUri: window.location.origin || "http://localhost:3000", // Default redirect URI
         clientCapabilities: ["cp1"]
     },

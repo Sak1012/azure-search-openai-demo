@@ -103,6 +103,7 @@ The repo includes sample data so it's ready to try end to end. In this sample ap
    - Add the following redirect URIs to the `azure-search-openai-demo-frontend` app registration in `Manage > Authentication`
      - `http://localhost:50505/`
      - `http://localhost:5173/` (Make sure this matches the port of your local setup)
+     > This Port allows hot reloading for frontend while using the poweshell script
      - URL of the deployed web app (retrieved from the Azure portal or printed as "Endpoint" after `azd` completes).
 
 5. **Make the App support Multi-teant ID's**
